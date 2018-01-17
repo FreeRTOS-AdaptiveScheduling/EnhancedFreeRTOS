@@ -335,6 +335,15 @@ typedef struct tskTaskControlBlock
 	#if( INCLUDE_xTaskAbortDelay == 1 )
 		uint8_t ucDelayAborted;
 	#endif
+    /* ----------------------------------------------------------------------------------------------
+    -------------------------------------------------------------------------------------------------
+    -------------------------------------------------------------------------------------------------
+    -----------------------------------------------------------------------------------------------*/
+    #ifdef ACO_ADAPTIVE
+        double pheramone;
+        TickType_t arival_time;
+        double probability;
+    #endif //ACO_ADAPTIVE
 
 } tskTCB;
 
@@ -5040,3 +5049,25 @@ when performing module tests). */
 #endif
 
 
+#ifdef ACO_ADAPTIVE
+
+#include <math.h>
+
+#define HVALUE 2
+#define ALPHA 1
+#define BETA 1
+#define PHEROMONE_CONST 0.2
+
+#define P1 1
+#define P2 1
+#define P3 1
+
+#define MIN_MAX(a,MIN,MAX) a - MIN / (MAX - MIN)
+#define GET_PERFORMANCE_MEASURE(a, b, c) P1*a*a*a + P2*b*b + P3*c 
+
+    double getHeuristicValue( TickType_t current_time, tskTCB task );
+    double getProbability( tskTCB task );
+    
+
+
+#endif

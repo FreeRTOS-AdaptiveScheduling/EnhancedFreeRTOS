@@ -124,4 +124,6 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
 /* Include the FreeRTOS+Trace FreeRTOS trace macro definitions. */
 #include "trcRecorder.h"
 
+#define ACO_ADAPTIVE
+
 #endif /* FREERTOS_CONFIG_H */
