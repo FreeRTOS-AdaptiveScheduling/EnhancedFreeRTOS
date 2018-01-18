@@ -339,7 +339,7 @@ typedef struct tskTaskControlBlock
     -------------------------------------------------------------------------------------------------
     -------------------------------------------------------------------------------------------------
     -----------------------------------------------------------------------------------------------*/
-    #ifdef ACO_ADAPTIVE
+    #if ( USE_ACO == 1 || USE_HYBRID_SCHEDULER == 1)
         double pheramone;
         TickType_t arival_time;
         double probability;
@@ -5049,7 +5049,7 @@ when performing module tests). */
 #endif
 
 
-#ifdef ACO_ADAPTIVE
+#if ( USE_ACO == 1 || USE_HYBID_SCHEDULER == 1 )
 
 #include <math.h>
 
@@ -5062,12 +5062,68 @@ when performing module tests). */
 #define P2 1
 #define P3 1
 
-#define MIN_MAX(a,MIN,MAX) a - MIN / (MAX - MIN)
-#define GET_PERFORMANCE_MEASURE(a, b, c) P1*a*a*a + P2*b*b + P3*c 
+#define PRIORITY_DEADLINE_MULTIPLIER    1.5
+#define DEADLINE_CONSTANT               5
 
-    double getHeuristicValue( TickType_t current_time, tskTCB task );
-    double getProbability( tskTCB task );
+#define GET_WAIT_TIME(task) xTaskGetTickCount() - task->arival_time
+
+#define acoMinMaxNormalization( a, MIN, MAX ) a - MIN / (MAX - MIN);
+
+
+    TickType_t maxWaitTime = 0;
+    TickType_t minWaitTime = 0;
+  
+
+    double acoTaskGetPerformanceMeasure( tskTCB * task, int rank ) {
+        double priority_factor = acoMinMaxNormalization( task->uxPriority, 0, configMAX_PRIORITIES );
+        double wait_time_factor = acoMinMaxNormalization( GET_WAIT_TIME( task ), minWaitTime, maxWaitTime );
+        double rank_factor = acoMinMaxNormalization( rank, 0, uxCurrentNumberOfTasks );
+        return P1 * priority_factor + P2 * wait_time_factor - P3 * rank_factor;
+    }
+
+    int acoGetDeadline( tskTCB* task ) {
+        return (task->uxPriority - configMAX_PRIORITIES)*PRIORITY_DEADLINE_MULTIPLIER + DEADLINE_CONSTANT;
+    }
+
+    double getHeuristicValue( TickType_t current_time, tskTCB* task ) {
+        return HVALUE / (acoGetDeadline( task ) - current_time);
+    }
+
+    double acoGetProbabilityFactor( tskTCB* task ) {
+        return pow( task->pheramone, ALPHA ) * pow( getHeuristicValue( xTaskGetTickCount(), task ) );
+    }
     
+    void acoStart() {
+        tskTCB **tasks = pvPortMalloc(sizeof(tskTCB*)*uxCurrentNumberOfTasks);
+        double sum_partial_probability = 0;
+        for ( int i = 0,k=0; i < configMAX_PRIORITIES; ++i ) {
+            for ( ListItem_t *j = pxReadyTasksLists[i].pxIndex; 
+                (void *) j == (void *) &(pxReadyTasksLists[i].xListEnd); j = j->pxNext ) {
+                tasks[k] = (tskTCB*) j->pvOwner;
+                tasks[k]->probability = acoGetProbabilityFactor( tasks[k] );
+                sum_partial_probability += tasks[k]->probability;
+            }
+        }
+        minWaitTime = GET_WAIT_TIME( tasks[0] );
+        for ( int i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+            tasks[i]->probability /= sum_partial_probability;
+            if ( maxWaitTime < GET_WAIT_TIME( tasks[i] ) )
+                maxWaitTime = GET_WAIT_TIME( tasks[i] );
+            if ( minWaitTime > GET_WAIT_TIME( tasks[i] ) )
+                minWaitTime = GET_WAIT_TIME( tasks[i] );
+        }
+        int *performance_measure = pvPortMalloc( sizeof( int )*uxCurrentNumberOfTasks );
+        for ( int i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+            performance_measure[0] += acoTaskGetPerformanceMeasure( tasks[i], i );
+        }
+        for ( int i = 1; i < uxCurrentNumberOfTasks; ++i ) {
+            performance_measure[i] += acoTaskGetPerformanceMeasure( tasks[i], 0 );
+            for ( int j = 0,rank=1; j < uxCurrentNumberOfTasks; ++j,rank++ ) {
+                if ( j == i ) continue;
+                performance_measure[i] += acoTaskGetPerformanceMeasure( tasks[i], rank );
+            }
+        } // TODO: Select top k paths to update pheromone
+    }
 
 
 #endif
