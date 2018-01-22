@@ -235,6 +235,7 @@ count overflows. */
 #define prvAddTaskToReadyList( pxTCB )																\
 	traceMOVED_TASK_TO_READY_STATE( pxTCB );														\
 	taskRECORD_READY_PRIORITY( ( pxTCB )->uxPriority );												\
+    ( pxTCB )-> arival_time = xTaskGetTickCount();                                                 \
 	vListInsertEnd( &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xStateListItem ) ); \
 	tracePOST_MOVED_TASK_TO_READY_STATE( pxTCB )
 /*-----------------------------------------------------------*/
@@ -1115,7 +1116,14 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 	}
 	taskEXIT_CRITICAL();
 
-	if( xSchedulerRunning != pdFALSE )
+    /* ACO Point to edit */
+    #if ( USE_ACO == 1 || USE_HYBID_SCHEDULER == 1 )
+    {
+        pxNewTCB->arival_time = xTaskGetTickCount();
+    }
+    #endif
+	
+    if( xSchedulerRunning != pdFALSE )
 	{
 		/* If the created task is of a higher priority than the current task
 		then it should run now. */
@@ -5106,7 +5114,7 @@ when performing module tests). */
             + PERFORMANCE_COEFFECIENT_WAIT_TIME * wait_time_factor)/ (PERFORMANCE_COEFFECIENT_RANK * rank_factor);
     }
 
-    int acoGetDeadline( tskTCB* task ) {
+    double acoGetDeadline( tskTCB* task ) {
         return task->arival_time + (int)(task->uxPriority)*PRIORITY_DEADLINE_MULTIPLIER + DEADLINE_CONSTANT;
     }
 
@@ -5128,7 +5136,7 @@ when performing module tests). */
            Calculate partial probability while doing it.  */
         for ( UBaseType_t i = 0,k=0; i < configMAX_PRIORITIES; ++i ) {
             for ( ListItem_t *j = pxReadyTasksLists[i].pxIndex; 
-                (void *) j != (void *) &(pxReadyTasksLists[i].xListEnd); j = j->pxNext ) {
+                  (void *) j != (void *) &(pxReadyTasksLists[i].xListEnd); j = j->pxNext ) {
                 tasks[k] = (tskTCB*) j->pvOwner;
                 tasks[k]->probability = acoGetProbabilityFactor( tasks[k] );
                 sum_partial_probability += tasks[k]->probability;
