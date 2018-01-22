@@ -583,6 +583,15 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 
 #endif
 
+#if ( USE_ACO == 1 || USE_HYBID_SCHEDULER == 1 )
+
+tskTCB* acoStart();
+    #if (ACO_DEBUG == 1)
+        #define acoDRAW_LINE() printf("================\n");
+    #endif
+
+#endif 
+
 /*-----------------------------------------------------------*/
 
 #if( configSUPPORT_STATIC_ALLOCATION == 1 )
@@ -1019,6 +1028,16 @@ UBaseType_t x;
 		pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters );
 	}
 	#endif /* portUSING_MPU_WRAPPERS */
+
+    /* If the scheduler is either ACO based of Hybrid, need to initialize
+       additional properties */
+    #if ( USE_ACO == 1 || USE_HYBID_SCHEDULER == 1 )
+    {
+        pxNewTCB->arival_time = xTaskGetTickCount();
+        pxNewTCB->pheramone = ACO_PHEROMONE_INIT_VALUE;
+        pxNewTCB->probability = 0;
+    }
+    #endif
 
 	if( ( void * ) pxCreatedTask != NULL )
 	{
@@ -2902,8 +2921,19 @@ void vTaskSwitchContext( void )
 
 		/* Select a new task to run using either the generic C or port
 		optimised asm code. */
+
+        
 		taskSELECT_HIGHEST_PRIORITY_TASK();
 		traceTASK_SWITCHED_IN();
+        #ifdef ACO_DEBUG
+        {
+            tskTCB *temp = acoStart();
+            acoDRAW_LINE();
+            printf( "The task selected by ACO: %s\n", temp->pcTaskName );
+            printf( "The task selected by Normal Scheduler: %s\n", pxCurrentTCB->pcTaskName );
+            acoDRAW_LINE();
+        }
+        #endif
 
 		#if ( configUSE_NEWLIB_REENTRANT == 1 )
 		{
@@ -5051,23 +5081,17 @@ when performing module tests). */
 
 #if ( USE_ACO == 1 || USE_HYBID_SCHEDULER == 1 )
 
+/*
+    TODO:
+    -> Set default pheramone value (Change Task create)
+    -> Update pheramone 
+*/
+
 #include <math.h>
-
-#define HVALUE 2
-#define ALPHA 1
-#define BETA 1
-#define PHEROMONE_CONST 0.2
-
-#define P1 1
-#define P2 1
-#define P3 1
-
-#define PRIORITY_DEADLINE_MULTIPLIER    1.5
-#define DEADLINE_CONSTANT               5
 
 #define GET_WAIT_TIME(task) xTaskGetTickCount() - task->arival_time
 
-#define acoMinMaxNormalization( a, MIN, MAX ) a - MIN / (MAX - MIN);
+#define acoMinMaxNormalization( a, MIN, MAX ) (a - MIN) / (MAX - MIN);
 
 
     TickType_t maxWaitTime = 0;
@@ -5078,51 +5102,143 @@ when performing module tests). */
         double priority_factor = acoMinMaxNormalization( task->uxPriority, 0, configMAX_PRIORITIES );
         double wait_time_factor = acoMinMaxNormalization( GET_WAIT_TIME( task ), minWaitTime, maxWaitTime );
         double rank_factor = acoMinMaxNormalization( rank, 0, uxCurrentNumberOfTasks );
-        return P1 * priority_factor + P2 * wait_time_factor - P3 * rank_factor;
+        return (PERFORMANCE_COEFFECIENT_PRIORITY * priority_factor 
+            + PERFORMANCE_COEFFECIENT_WAIT_TIME * wait_time_factor)/ (PERFORMANCE_COEFFECIENT_RANK * rank_factor);
     }
 
     int acoGetDeadline( tskTCB* task ) {
-        return (task->uxPriority - configMAX_PRIORITIES)*PRIORITY_DEADLINE_MULTIPLIER + DEADLINE_CONSTANT;
+        return task->arival_time + (int)(task->uxPriority)*PRIORITY_DEADLINE_MULTIPLIER + DEADLINE_CONSTANT;
     }
 
     double getHeuristicValue( TickType_t current_time, tskTCB* task ) {
-        return HVALUE / (acoGetDeadline( task ) - current_time);
+        double hv = acoHVALUE / (acoGetDeadline( task ) - current_time);
+        return hv;
     }
 
     double acoGetProbabilityFactor( tskTCB* task ) {
-        return pow( task->pheramone, ALPHA ) * pow( getHeuristicValue( xTaskGetTickCount(), task ) );
+        double probability = pow( task->pheramone, acoALPHA ) * pow( getHeuristicValue( xTaskGetTickCount(), task ), acoBETA );
+        return probability;
     }
     
-    void acoStart() {
+    tskTCB* acoStart() {
         tskTCB **tasks = pvPortMalloc(sizeof(tskTCB*)*uxCurrentNumberOfTasks);
         double sum_partial_probability = 0;
-        for ( int i = 0,k=0; i < configMAX_PRIORITIES; ++i ) {
+
+        /* Loop through entire ready list and create a linear array
+           Calculate partial probability while doing it.  */
+        for ( UBaseType_t i = 0,k=0; i < configMAX_PRIORITIES; ++i ) {
             for ( ListItem_t *j = pxReadyTasksLists[i].pxIndex; 
-                (void *) j == (void *) &(pxReadyTasksLists[i].xListEnd); j = j->pxNext ) {
+                (void *) j != (void *) &(pxReadyTasksLists[i].xListEnd); j = j->pxNext ) {
                 tasks[k] = (tskTCB*) j->pvOwner;
                 tasks[k]->probability = acoGetProbabilityFactor( tasks[k] );
                 sum_partial_probability += tasks[k]->probability;
+                k++;
             }
         }
-        minWaitTime = GET_WAIT_TIME( tasks[0] );
-        for ( int i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+
+        /* Initialize min and max Waiting time  */
+        minWaitTime = GET_WAIT_TIME( tasks[0] ); 
+        maxWaitTime = GET_WAIT_TIME( tasks[0] );
+
+        /* Find the Min and Max Waiting time fpr normalisation.
+            
+            Also calculate probability using the formula:
+                probability = partial_probability / partial_probability_sum
+        */
+        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
             tasks[i]->probability /= sum_partial_probability;
             if ( maxWaitTime < GET_WAIT_TIME( tasks[i] ) )
                 maxWaitTime = GET_WAIT_TIME( tasks[i] );
             if ( minWaitTime > GET_WAIT_TIME( tasks[i] ) )
                 minWaitTime = GET_WAIT_TIME( tasks[i] );
         }
-        int *performance_measure = pvPortMalloc( sizeof( int )*uxCurrentNumberOfTasks );
-        for ( int i = 0; i < uxCurrentNumberOfTasks; ++i ) {
-            performance_measure[0] += acoTaskGetPerformanceMeasure( tasks[i], i );
-        }
-        for ( int i = 1; i < uxCurrentNumberOfTasks; ++i ) {
-            performance_measure[i] += acoTaskGetPerformanceMeasure( tasks[i], 0 );
-            for ( int j = 0,rank=1; j < uxCurrentNumberOfTasks; ++j,rank++ ) {
-                if ( j == i ) continue;
-                performance_measure[i] += acoTaskGetPerformanceMeasure( tasks[i], rank );
+        /* Sort the tasks in decreasing order of probabilty
+           -> TODO: Replace the sort with something more optimal */
+        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+            for ( UBaseType_t j = 0; j < uxCurrentNumberOfTasks - 1; ++j ) {
+                if ( tasks[j]->probability < tasks[j + 1]->probability ) {
+                    tskTCB *temp = tasks[j];
+                    tasks[j] = tasks[j + 1];
+                    tasks[j + 1] = temp;
+                }
             }
-        } // TODO: Select top k paths to update pheromone
+        }
+        /* Allocate array to hold the performance measure of different paths. */
+        double *performance_measure = pvPortMalloc( sizeof( double )*uxCurrentNumberOfTasks );
+        
+        /* Calculate the performance of main path 
+        
+            Note: The ranks start from 1 instead of 0
+
+            In case of 4 tasks, there will be 4 paths:
+            Path 0: A -> B -> C -> D  (Decending order of probability)
+            Path 1: B -> A -> C -> D
+            Path 2: C -> A -> B -> D
+            Path 3: D -> A -> B -> c
+
+        */
+
+        /* Calculating Path 0 performance. */
+        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+            performance_measure[0] += acoTaskGetPerformanceMeasure( tasks[i], i+1 ); // i+1 to make rank start from 1
+        }
+
+        /* Calculate the performance of other paths */
+        for ( UBaseType_t i = 1; i < uxCurrentNumberOfTasks; ++i ) {
+            /* Select the Nth task to be first. */
+            performance_measure[i] += acoTaskGetPerformanceMeasure( tasks[i], 1 );
+            for ( UBaseType_t j = 0,rank=2; j < uxCurrentNumberOfTasks; ++j ) {
+                if ( j == i ) continue; //to Skip nth task in path, as it is ranked 1st
+                performance_measure[i] += acoTaskGetPerformanceMeasure( tasks[i], rank );
+                rank++;
+            }
+        }
+
+        /* Finding the top paths
+        
+            Use an array of size k to hold the top k paths.
+            It will hold an int pointing to the path index.
+
+            Since the rank of the path's performance is not needed,
+            We can simply ignore the order of index stored in the array.
+
+        */
+        UBaseType_t top_path[ACO_PATHS] = { 0 }, top_index=0;
+        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+            if ( performance_measure[top_path[top_index]] < performance_measure[i] ) {
+                top_index = (top_index + 1) % ACO_PATHS;
+                top_path[top_index] = i;
+            }
+        }
+
+        /* Update the probabilities of the Top Paths */
+        for ( int i = 0; i < ACO_PATHS; ++i ) {
+            UBaseType_t path_number = top_path[i];
+            tasks[path_number]->pheramone += acoPHEROMONE_CONST * acoTaskGetPerformanceMeasure( tasks[path_number], 1 ); // Update pheromone of first task
+            // Now loop for other tasks in the path.
+            for ( UBaseType_t j = 0, rank = 1; j < uxCurrentNumberOfTasks; ++j ) {
+                if ( j == path_number ) continue; // Skip the first task
+                tasks[j]->pheramone += acoPHEROMONE_CONST * acoTaskGetPerformanceMeasure( tasks[j], rank ); // Update pheromone of first task
+                rank++;
+            }
+        }
+
+        sum_partial_probability = 0;
+        /* Calculate probability again and select the task with maximum probability */
+        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+            tasks[i]->probability = acoGetProbabilityFactor( tasks[i] );
+            sum_partial_probability += tasks[i]->probability;
+        }
+        tskTCB *maximum_probabilty_task = tasks[0];
+        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+            tasks[i]->probability /= sum_partial_probability;
+            if ( tasks[i]->probability > maximum_probabilty_task->probability )
+                maximum_probabilty_task = tasks[i];
+        }
+        vPortFree( tasks );
+        vPortFree( performance_measure );
+
+        return maximum_probabilty_task;
     }
 
 

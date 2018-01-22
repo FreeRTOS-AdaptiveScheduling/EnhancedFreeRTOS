@@ -89,9 +89,6 @@ choice.  See http://www.freertos.org/a00111.html for an explanation. */
 extern void main_blinky( void );
 extern void main_full( void );
 
-#ifdef DUMMY_TIMED_TASK
-extern void main_dummy_timmed( void );
-#endif
 
 /*
  * Only the comprehensive demo uses application hook (callback) functions.  See

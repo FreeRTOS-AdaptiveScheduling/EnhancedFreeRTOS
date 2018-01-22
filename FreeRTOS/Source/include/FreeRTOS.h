@@ -1028,6 +1028,12 @@ typedef struct xSTATIC_TCB
 		uint8_t ucDummy21;
 	#endif
 
+    #if ( USE_ACO == 1 || USE_HYBRID_SCHEDULER == 1)
+        double pheramone;
+        TickType_t arival_time;
+        double probability;
+    #endif //ACO_ADAPTIVE
+
 } StaticTask_t;
 
 /*

@@ -133,5 +133,23 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
 
 #define PRINT_BLINKY_TIME                       1
 
+/* =======================================
+    Constants controlling ACO 
+ =========================================*/
+
+#define ACO_DEBUG                               1
 #define ACO_PATHS                               2
+
+#define ACO_PHEROMONE_INIT_VALUE                1
+#define acoHVALUE 2
+#define acoALPHA 1
+#define acoBETA 1
+#define acoPHEROMONE_CONST 0.2
+
+#define PERFORMANCE_COEFFECIENT_PRIORITY 1
+#define PERFORMANCE_COEFFECIENT_WAIT_TIME 1
+#define PERFORMANCE_COEFFECIENT_RANK 1
+
+#define PRIORITY_DEADLINE_MULTIPLIER    1.5
+#define DEADLINE_CONSTANT               5
 #endif /* FREERTOS_CONFIG_H */
