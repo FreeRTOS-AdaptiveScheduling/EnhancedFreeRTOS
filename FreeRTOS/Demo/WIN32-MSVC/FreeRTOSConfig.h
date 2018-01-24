@@ -128,10 +128,10 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
                    Custom Config
 ========================================================================= */
 #define DEBUG
-#define USE_ACO                                 1
+#define USE_ACO                                 0
 #define USE_HYBRID_SCHEDULER                    0
 
-#define PRINT_BLINKY_TIME                       1
+#define PRINT_BLINKY_TIME                       0
 
 /* =======================================
     Constants controlling ACO 

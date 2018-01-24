@@ -232,12 +232,24 @@ count overflows. */
  * Place the task represented by pxTCB into the appropriate ready list for
  * the task.  It is inserted at the end of the list.
  */
+
+#if ( USE_ACO == 1 || USE_HYBRID_SCHEDULER == 1 )  
 #define prvAddTaskToReadyList( pxTCB )																\
 	traceMOVED_TASK_TO_READY_STATE( pxTCB );														\
 	taskRECORD_READY_PRIORITY( ( pxTCB )->uxPriority );												\
-    ( pxTCB )-> arival_time = xTaskGetTickCount();                                                 \
+    ( pxTCB )-> arival_time = xTaskGetTickCount();                                                  \                                                                                        
+    vListInsertEnd( &(pxReadyTasksLists[(pxTCB)->uxPriority]), &((pxTCB)->xStateListItem) ); \
+    tracePOST_MOVED_TASK_TO_READY_STATE( pxTCB )
+
+#else
+
+#define prvAddTaskToReadyList( pxTCB )																\
+	traceMOVED_TASK_TO_READY_STATE( pxTCB );														\
+	taskRECORD_READY_PRIORITY( ( pxTCB )->uxPriority );												\
 	vListInsertEnd( &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xStateListItem ) ); \
 	tracePOST_MOVED_TASK_TO_READY_STATE( pxTCB )
+
+#endif // USE_ACO || USE_HYBRID
 /*-----------------------------------------------------------*/
 
 /*
@@ -2933,15 +2945,17 @@ void vTaskSwitchContext( void )
         
 		taskSELECT_HIGHEST_PRIORITY_TASK();
 		traceTASK_SWITCHED_IN();
-        #ifdef ACO_DEBUG
-        {
-            tskTCB *temp = acoStart();
-            acoDRAW_LINE();
-            printf( "The task selected by ACO: %s\n", temp->pcTaskName );
-            printf( "The task selected by Normal Scheduler: %s\n", pxCurrentTCB->pcTaskName );
-            acoDRAW_LINE();
-        }
-        #endif
+        #if ( USE_ACO == 1 || USE_HYBRID_SCHEDULER == 1)
+                #ifdef ACO_DEBUG
+                {
+                    tskTCB *temp = acoStart();
+                    acoDRAW_LINE();
+                    printf( "The task selected by ACO: %s\n", temp->pcTaskName );
+                    printf( "The task selected by Normal Scheduler: %s\n", pxCurrentTCB->pcTaskName );
+                    acoDRAW_LINE();
+                }
+                #endif
+        #endif // USE_ACO
 
 		#if ( configUSE_NEWLIB_REENTRANT == 1 )
 		{
