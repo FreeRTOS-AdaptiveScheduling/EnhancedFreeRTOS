@@ -210,5 +210,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Trace.dump">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

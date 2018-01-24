@@ -237,10 +237,9 @@ count overflows. */
 #define prvAddTaskToReadyList( pxTCB )																\
 	traceMOVED_TASK_TO_READY_STATE( pxTCB );														\
 	taskRECORD_READY_PRIORITY( ( pxTCB )->uxPriority );												\
-    ( pxTCB )-> arival_time = xTaskGetTickCount();                                                  \                                                                                        
-    vListInsertEnd( &(pxReadyTasksLists[(pxTCB)->uxPriority]), &((pxTCB)->xStateListItem) ); \
-    tracePOST_MOVED_TASK_TO_READY_STATE( pxTCB )
-
+	vListInsertEnd( &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xStateListItem ) ); \
+    ( pxTCB )-> arival_time = xTaskGetTickCount();                                                  \
+	tracePOST_MOVED_TASK_TO_READY_STATE( pxTCB )
 #else
 
 #define prvAddTaskToReadyList( pxTCB )																\
@@ -597,10 +596,20 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 #endif
 
 #if ( USE_ACO == 1 || USE_HYBID_SCHEDULER == 1 )
-
-tskTCB* acoStart();
-    #if (ACO_DEBUG == 1)
-        #define acoDRAW_LINE() printf("================\n");
+    TickType_t acoGetDeadline( tskTCB* task );
+    tskTCB* acoStart();
+#if (ACO_DEBUG >= 1)
+#define acoDRAW_LINE() printf("================\n");
+#define acoPRINT_TASK_DETAILS(task)                                         \
+        {                                                                   \
+            acoDRAW_LINE();                                                 \
+            printf("Task Name: %s\n", task->pcTaskName);                    \
+            printf("Task Priority: %d\n", task->uxPriority);                \
+            printf("Task Probability: %lf\n", task->probability);           \
+            printf("Task Pheromone: %lf\n", task->pheramone);               \
+            printf("Task deadline: %ld\n", acoGetDeadline(task));           \
+            acoDRAW_LINE();                                                 \
+        }
     #endif
 
 #endif 
@@ -2946,7 +2955,7 @@ void vTaskSwitchContext( void )
 		taskSELECT_HIGHEST_PRIORITY_TASK();
 		traceTASK_SWITCHED_IN();
         #if ( USE_ACO == 1 || USE_HYBRID_SCHEDULER == 1)
-                #ifdef ACO_DEBUG
+                #if ACO_DEBUG >=1
                 {
                     tskTCB *temp = acoStart();
                     acoDRAW_LINE();
@@ -5113,7 +5122,7 @@ when performing module tests). */
 
 #define GET_WAIT_TIME(task) xTaskGetTickCount() - task->arival_time
 
-#define acoMinMaxNormalization( a, MIN, MAX ) (a - MIN) / (MAX - MIN);
+#define acoMinMaxNormalization( a, MIN, MAX ) (a - MIN) / (MAX - MIN + 1);
 
 
     TickType_t maxWaitTime = 0;
@@ -5128,12 +5137,14 @@ when performing module tests). */
             + PERFORMANCE_COEFFECIENT_WAIT_TIME * wait_time_factor)/ (PERFORMANCE_COEFFECIENT_RANK * rank_factor);
     }
 
-    double acoGetDeadline( tskTCB* task ) {
-        return task->arival_time + (int)(task->uxPriority)*PRIORITY_DEADLINE_MULTIPLIER + DEADLINE_CONSTANT;
+    TickType_t acoGetDeadline( tskTCB* task ) {
+        return (TickType_t)(task->arival_time + 
+            DEADLINE_CONSTANT - (int)(task->uxPriority)*PRIORITY_DEADLINE_MULTIPLIER );
     }
 
     double getHeuristicValue( TickType_t current_time, tskTCB* task ) {
-        double hv = acoHVALUE / (acoGetDeadline( task ) - current_time);
+        TickType_t deadline = acoGetDeadline( task );
+        double hv = acoHVALUE / (double)( deadline - current_time);
         return hv;
     }
 
@@ -5145,16 +5156,26 @@ when performing module tests). */
     tskTCB* acoStart() {
         tskTCB **tasks = pvPortMalloc(sizeof(tskTCB*)*uxCurrentNumberOfTasks);
         double sum_partial_probability = 0;
+        UBaseType_t acoNumberActiveTask = 0;
 
         /* Loop through entire ready list and create a linear array
            Calculate partial probability while doing it.  */
         for ( UBaseType_t i = 0,k=0; i < configMAX_PRIORITIES; ++i ) {
-            for ( ListItem_t *j = pxReadyTasksLists[i].pxIndex; 
-                  (void *) j != (void *) &(pxReadyTasksLists[i].xListEnd); j = j->pxNext ) {
-                tasks[k] = (tskTCB*) j->pvOwner;
+            UBaseType_t numberOfItems = listCURRENT_LIST_LENGTH( &pxReadyTasksLists[i] );
+            ListItem_t *list_end = listGET_END_MARKER( &pxReadyTasksLists[i] );
+            ListItem_t *list_item = listGET_HEAD_ENTRY( &pxReadyTasksLists[i] );
+            while(list_item != list_end){  
+                tasks[k] = listGET_LIST_ITEM_OWNER(list_item);
                 tasks[k]->probability = acoGetProbabilityFactor( tasks[k] );
                 sum_partial_probability += tasks[k]->probability;
-                k++;
+                #if ACO_DEBUG >= 4
+                {
+                    acoPRINT_TASK_DETAILS( tasks[k] );
+                }
+                #endif
+                list_item = listGET_NEXT( list_item );
+                ++k;
+                acoNumberActiveTask++;
             }
         }
 
@@ -5167,7 +5188,7 @@ when performing module tests). */
             Also calculate probability using the formula:
                 probability = partial_probability / partial_probability_sum
         */
-        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+        for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
             tasks[i]->probability /= sum_partial_probability;
             if ( maxWaitTime < GET_WAIT_TIME( tasks[i] ) )
                 maxWaitTime = GET_WAIT_TIME( tasks[i] );
@@ -5176,8 +5197,8 @@ when performing module tests). */
         }
         /* Sort the tasks in decreasing order of probabilty
            -> TODO: Replace the sort with something more optimal */
-        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
-            for ( UBaseType_t j = 0; j < uxCurrentNumberOfTasks - 1; ++j ) {
+        for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
+            for ( UBaseType_t j = 0; j < acoNumberActiveTask - 1; ++j ) {
                 if ( tasks[j]->probability < tasks[j + 1]->probability ) {
                     tskTCB *temp = tasks[j];
                     tasks[j] = tasks[j + 1];
@@ -5186,7 +5207,7 @@ when performing module tests). */
             }
         }
         /* Allocate array to hold the performance measure of different paths. */
-        double *performance_measure = pvPortMalloc( sizeof( double )*uxCurrentNumberOfTasks );
+        double *performance_measure = pvPortMalloc( sizeof( double )*acoNumberActiveTask );
         
         /* Calculate the performance of main path 
         
@@ -5201,15 +5222,15 @@ when performing module tests). */
         */
 
         /* Calculating Path 0 performance. */
-        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+        for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
             performance_measure[0] += acoTaskGetPerformanceMeasure( tasks[i], i+1 ); // i+1 to make rank start from 1
         }
 
         /* Calculate the performance of other paths */
-        for ( UBaseType_t i = 1; i < uxCurrentNumberOfTasks; ++i ) {
+        for ( UBaseType_t i = 1; i < acoNumberActiveTask; ++i ) {
             /* Select the Nth task to be first. */
             performance_measure[i] += acoTaskGetPerformanceMeasure( tasks[i], 1 );
-            for ( UBaseType_t j = 0,rank=2; j < uxCurrentNumberOfTasks; ++j ) {
+            for ( UBaseType_t j = 0,rank=2; j < acoNumberActiveTask; ++j ) {
                 if ( j == i ) continue; //to Skip nth task in path, as it is ranked 1st
                 performance_measure[i] += acoTaskGetPerformanceMeasure( tasks[i], rank );
                 rank++;
@@ -5226,7 +5247,7 @@ when performing module tests). */
 
         */
         UBaseType_t top_path[ACO_PATHS] = { 0 }, top_index=0;
-        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+        for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
             if ( performance_measure[top_path[top_index]] < performance_measure[i] ) {
                 top_index = (top_index + 1) % ACO_PATHS;
                 top_path[top_index] = i;
@@ -5238,7 +5259,7 @@ when performing module tests). */
             UBaseType_t path_number = top_path[i];
             tasks[path_number]->pheramone += acoPHEROMONE_CONST * acoTaskGetPerformanceMeasure( tasks[path_number], 1 ); // Update pheromone of first task
             // Now loop for other tasks in the path.
-            for ( UBaseType_t j = 0, rank = 1; j < uxCurrentNumberOfTasks; ++j ) {
+            for ( UBaseType_t j = 0, rank = 1; j < acoNumberActiveTask; ++j ) {
                 if ( j == path_number ) continue; // Skip the first task
                 tasks[j]->pheramone += acoPHEROMONE_CONST * acoTaskGetPerformanceMeasure( tasks[j], rank ); // Update pheromone of first task
                 rank++;
@@ -5247,15 +5268,20 @@ when performing module tests). */
 
         sum_partial_probability = 0;
         /* Calculate probability again and select the task with maximum probability */
-        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+        for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
             tasks[i]->probability = acoGetProbabilityFactor( tasks[i] );
             sum_partial_probability += tasks[i]->probability;
         }
         tskTCB *maximum_probabilty_task = tasks[0];
-        for ( UBaseType_t i = 0; i < uxCurrentNumberOfTasks; ++i ) {
+        for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
             tasks[i]->probability /= sum_partial_probability;
             if ( tasks[i]->probability > maximum_probabilty_task->probability )
                 maximum_probabilty_task = tasks[i];
+            #if ACO_DEBUG >= 4
+            {
+                acoPRINT_TASK_DETAILS( tasks[i] );
+            }
+            #endif
         }
         vPortFree( tasks );
         vPortFree( performance_measure );
