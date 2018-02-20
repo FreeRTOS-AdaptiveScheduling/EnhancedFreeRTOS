@@ -5122,17 +5122,18 @@ when performing module tests). */
 
 #define GET_WAIT_TIME(task) xTaskGetTickCount() - task->arival_time
 
-#define acoMinMaxNormalization( a, MIN, MAX ) (a - MIN) / (MAX - MIN + 1);
+#define acoMinMaxNormalization( a, MIN, MAX ) (double)(a - MIN) / (double)(MAX - MIN + 1);
 
 
     TickType_t maxWaitTime = 0;
     TickType_t minWaitTime = 0;
+    UBaseType_t acoNumberActiveTask = 0;
   
 
     double acoTaskGetPerformanceMeasure( tskTCB * task, int rank ) {
         double priority_factor = acoMinMaxNormalization( task->uxPriority, 0, configMAX_PRIORITIES );
         double wait_time_factor = acoMinMaxNormalization( GET_WAIT_TIME( task ), minWaitTime, maxWaitTime );
-        double rank_factor = acoMinMaxNormalization( rank, 0, uxCurrentNumberOfTasks );
+        double rank_factor = acoMinMaxNormalization( rank, 0, acoNumberActiveTask );
         return (PERFORMANCE_COEFFECIENT_PRIORITY * priority_factor 
             + PERFORMANCE_COEFFECIENT_WAIT_TIME * wait_time_factor)/ (PERFORMANCE_COEFFECIENT_RANK * rank_factor);
     }
@@ -5156,7 +5157,7 @@ when performing module tests). */
     tskTCB* acoStart() {
         tskTCB **tasks = pvPortMalloc(sizeof(tskTCB*)*uxCurrentNumberOfTasks);
         double sum_partial_probability = 0;
-        UBaseType_t acoNumberActiveTask = 0;
+        acoNumberActiveTask = 0;
 
         /* Loop through entire ready list and create a linear array
            Calculate partial probability while doing it.  */
@@ -5168,11 +5169,6 @@ when performing module tests). */
                 tasks[k] = listGET_LIST_ITEM_OWNER(list_item);
                 tasks[k]->probability = acoGetProbabilityFactor( tasks[k] );
                 sum_partial_probability += tasks[k]->probability;
-                #if ACO_DEBUG >= 4
-                {
-                    acoPRINT_TASK_DETAILS( tasks[k] );
-                }
-                #endif
                 list_item = listGET_NEXT( list_item );
                 ++k;
                 acoNumberActiveTask++;
@@ -5194,6 +5190,11 @@ when performing module tests). */
                 maxWaitTime = GET_WAIT_TIME( tasks[i] );
             if ( minWaitTime > GET_WAIT_TIME( tasks[i] ) )
                 minWaitTime = GET_WAIT_TIME( tasks[i] );
+            #if ACO_DEBUG >= 4
+            {
+                acoPRINT_TASK_DETAILS( tasks[i] );
+            }
+            #endif
         }
         /* Sort the tasks in decreasing order of probabilty
            -> TODO: Replace the sort with something more optimal */
