@@ -127,7 +127,7 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
 /* ======================================================================
                    Custom Config
 ========================================================================= */
-#define DEBUG
+//#define DEBUG
 #define USE_ACO                                 1
 #define USE_HYBRID_SCHEDULER                    0
 
@@ -137,7 +137,7 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
     Constants controlling ACO 
  =========================================*/
 
-#define ACO_DEBUG                               4
+#define ACO_DEBUG                               1
 #define ACO_PATHS                               2
 
 #define ACO_PHEROMONE_INIT_VALUE                1

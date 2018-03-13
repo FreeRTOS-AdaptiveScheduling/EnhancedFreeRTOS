@@ -190,7 +190,7 @@ const uint32_t ulValueToSend = mainVALUE_SENT_FROM_TASK;
 	{
         #if ( PRINT_BLINKY_TIME == 1 ) 
         {
-            printf( "Current tick: %d | Executing Task 2\n", xNextWakeTime );
+            printf( "Current tick: %d | Executing Task Tx\n", xNextWakeTime );
         }
         #endif
 		/* Place this task in the blocked state until it is time to run again.
@@ -239,7 +239,7 @@ uint32_t ulReceivedValue;
         #if ( PRINT_BLINKY_TIME == 1 ) 
         {   
        
-            printf( "Current tick: %d | Executing Task 1\n", xTaskGetTickCount() );
+            printf( "Current tick: %d | Executing Task Rx\n", xTaskGetTickCount() );
         }
         #endif
 		/* Wait until something arrives in the queue - this task will block

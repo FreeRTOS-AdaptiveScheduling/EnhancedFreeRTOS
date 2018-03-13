@@ -2951,21 +2951,24 @@ void vTaskSwitchContext( void )
 		/* Select a new task to run using either the generic C or port
 		optimised asm code. */
 
-        
-		taskSELECT_HIGHEST_PRIORITY_TASK();
+        #if (USE_ACO == 1)
+            pxCurrentTCB = acoStart();
+        #else
+		    taskSELECT_HIGHEST_PRIORITY_TASK();
+        #endif
+       // #if ( USE_ACO == 1 || USE_HYBRID_SCHEDULER == 1)
+        #if ACO_DEBUG >=1
+        {
+            //tskTCB *temp = acoStart();
+            //acoDRAW_LINE();
+            //printf( "The task selected by ACO: %s\n", temp->pcTaskName );
+            printf( "The task selected by Scheduler: %s\n", pxCurrentTCB->pcTaskName );
+            //acoDRAW_LINE();
+        }
+        #endif
+       // #endif // USE_ACO
 		traceTASK_SWITCHED_IN();
-        #if ( USE_ACO == 1 || USE_HYBRID_SCHEDULER == 1)
-                #if ACO_DEBUG >=1
-                {
-                    tskTCB *temp = acoStart();
-                    acoDRAW_LINE();
-                    printf( "The task selected by ACO: %s\n", temp->pcTaskName );
-                    printf( "The task selected by Normal Scheduler: %s\n", pxCurrentTCB->pcTaskName );
-                    acoDRAW_LINE();
-                }
-                #endif
-        #endif // USE_ACO
-
+       
 		#if ( configUSE_NEWLIB_REENTRANT == 1 )
 		{
 			/* Switch Newlib's _impure_ptr variable to point to the _reent
