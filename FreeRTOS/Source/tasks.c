@@ -5252,6 +5252,7 @@ when performing module tests). */
         */
         UBaseType_t top_path[ACO_PATHS] = { 0 }, top_index=0;
         for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
+            tasks[i]->pheramone *= (1 - acoPHEROMONE_EVAPORATION_CONST);
             if ( performance_measure[top_path[top_index]] < performance_measure[i] ) {
                 top_index = (top_index + 1) % ACO_PATHS;
                 top_path[top_index] = i;

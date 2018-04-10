@@ -145,6 +145,7 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
 #define acoALPHA                                1
 #define acoBETA                                 1
 #define acoPHEROMONE_CONST                      0.2
+#define acoPHEROMONE_EVAPORATION_CONST          0.4
 
 #define PERFORMANCE_COEFFECIENT_PRIORITY        1
 #define PERFORMANCE_COEFFECIENT_WAIT_TIME       1
