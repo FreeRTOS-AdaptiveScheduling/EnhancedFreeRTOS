@@ -70,6 +70,7 @@ If mainCREATE_SIMPLE_BLINKY_DEMO_ONLY is not 1 then the comprehensive test and
 demo application will be built.  The comprehensive test and demo application is
 implemented and described in main_full.c. */
 #define mainCREATE_SIMPLE_BLINKY_DEMO_ONLY	1
+#define mainUSE_ACO_DEMO 1
 
 /* This demo uses heap_5.c, and these constants define the sizes of the regions
 that make up the total heap.  heap_5 is only used for test and example purposes
@@ -88,6 +89,7 @@ choice.  See http://www.freertos.org/a00111.html for an explanation. */
  */
 extern void main_blinky( void );
 extern void main_full( void );
+extern void main_experiment( void );
 
 
 /*
@@ -146,26 +148,31 @@ int main( void )
 	/* Initialise the trace recorder.  Use of the trace recorder is optional.
 	See http://www.FreeRTOS.org/trace for more information. */
 	vTraceEnable( TRC_START );
+    #if ( mainUSE_ACO_DEMO == 1)
+    {
+        main_experiment();
+    }
+    #else 
+    {
+        /* The mainCREATE_SIMPLE_BLINKY_DEMO_ONLY setting is described at the top
+        of this file. */
+        #if ( mainCREATE_SIMPLE_BLINKY_DEMO_ONLY == 1 )
+        {
+            main_blinky();
+        }
+        #else
+        {
+            /* Start the trace recording - the recording is written to a file if
+            configASSERT() is called. */
+            printf( "\r\nTrace started.\r\nThe trace will be dumped to disk if a call to configASSERT() fails.\r\n" );
+            printf( "Uncomment the call to kbhit() in this file to also dump trace with a key press.\r\n" );
+            uiTraceStart();
 
-	/* The mainCREATE_SIMPLE_BLINKY_DEMO_ONLY setting is described at the top
-	of this file. */
-	#if ( mainCREATE_SIMPLE_BLINKY_DEMO_ONLY == 1 )
-	{
-		main_blinky();
-	}
-	#else
-	{
-		/* Start the trace recording - the recording is written to a file if
-		configASSERT() is called. */
-		printf( "\r\nTrace started.\r\nThe trace will be dumped to disk if a call to configASSERT() fails.\r\n" );
-		printf( "Uncomment the call to kbhit() in this file to also dump trace with a key press.\r\n" );
-		uiTraceStart();
-
-		main_full();
-	}
-	#endif
-
-
+            main_full();
+        }
+        #endif
+    }
+    #endif
 	return 0;
 }
 /*-----------------------------------------------------------*/

@@ -38,6 +38,9 @@
     <Filter Include="Demo App Source\Blinky_Demo">
       <UniqueIdentifier>{fb86fa48-ac27-4f87-9215-ce9e1a1a85f9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Demo App Source\Experiment_Main">
+      <UniqueIdentifier>{ea7808d4-b833-409e-bae3-14e9dd939a88}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -160,6 +163,9 @@
     <ClCompile Include="..\Common\Minimal\MessageBufferAMP.c">
       <Filter>Demo App Source\Full_Demo\Common Demo Tasks</Filter>
     </ClCompile>
+    <ClCompile Include="experiment_demo.c">
+      <Filter>Demo App Source\Experiment_Main</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FreeRTOSConfig.h">
@@ -213,5 +219,6 @@
     <None Include="Trace.dump">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="WIN32-MSVC.licenseheader" />
   </ItemGroup>
 </Project>
