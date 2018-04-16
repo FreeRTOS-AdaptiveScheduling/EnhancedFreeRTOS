@@ -32,6 +32,7 @@
  * is started, and some after.
  */
 
+
 /* Standard includes. */
 #include <string.h>
 
@@ -42,6 +43,8 @@
 
 /* Demo program include files. */
 #include "TimerDemo.h"
+
+#if ( USE_ACO != 1 )
 
 #if ( configTIMER_TASK_PRIORITY < 1 )
 	#error configTIMER_TASK_PRIORITY must be set to at least 1 for this test/demo to function correctly.
@@ -1061,6 +1064,8 @@ static void prvISROneShotTimerCallback( TimerHandle_t pxExpiredTimer )
 	ucISROneShotTimerCounter++;
 }
 /*-----------------------------------------------------------*/
+
+#endif // USE_ACO != 1
 
 
 

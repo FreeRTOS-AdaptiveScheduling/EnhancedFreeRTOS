@@ -43,6 +43,7 @@
 
 /* Demo includes. */
 #include "AbortDelay.h"
+#if ( USE_ACO != 1)
 
 /* This file can only be used if the functionality it tests is included in the
 build.  Remove the whole file if this is not the case. */
@@ -641,3 +642,4 @@ BaseType_t xReturn = pdPASS;
 }
 
 #endif /* INCLUDE_xTaskAbortDelay == 1 */
+#endif //USE_ACO

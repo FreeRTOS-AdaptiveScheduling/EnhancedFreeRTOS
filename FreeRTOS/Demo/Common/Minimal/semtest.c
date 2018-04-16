@@ -60,6 +60,8 @@
 /* Demo app include files. */
 #include "semtest.h"
 
+#if ( USE_ACO != 1)
+
 /* The value to which the shared variables are counted. */
 #define semtstBLOCKING_EXPECTED_VALUE		( ( uint32_t ) 0xfff )
 #define semtstNON_BLOCKING_EXPECTED_VALUE	( ( uint32_t ) 0xff  )
@@ -267,4 +269,4 @@ BaseType_t xTask, xReturn = pdTRUE;
 	return xReturn;
 }
 
-
+#endif // USE_ACO != 1

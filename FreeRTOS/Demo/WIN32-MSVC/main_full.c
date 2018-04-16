@@ -106,7 +106,7 @@
 #include "StreamBufferDemo.h"
 #include "StreamBufferInterrupt.h"
 #include "MessageBufferAMP.h"
-
+#if ( USE_ACO != 1)
 /* Priorities at which the tasks are created. */
 #define mainCHECK_TASK_PRIORITY			( configMAX_PRIORITIES - 2 )
 #define mainQUEUE_POLL_PRIORITY			( tskIDLE_PRIORITY + 1 )
@@ -788,3 +788,4 @@ static void prvPermanentlyBlockingNotificationTask( void *pvParameters )
 
 
 
+#endif

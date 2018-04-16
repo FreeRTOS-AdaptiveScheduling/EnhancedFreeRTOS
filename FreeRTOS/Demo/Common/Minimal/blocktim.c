@@ -39,6 +39,7 @@
 
 /* Demo includes. */
 #include "blocktim.h"
+#if ( USE_ACO != 1)
 
 /* Task priorities.  Allow these to be overridden. */
 #ifndef bktPRIMARY_PRIORITY
@@ -539,3 +540,4 @@ BaseType_t xReturn = pdPASS;
 
 	return xReturn;
 }
+#endif //USE_ACO

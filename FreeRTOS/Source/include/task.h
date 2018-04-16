@@ -49,6 +49,8 @@ extern "C" {
 #define tskKERNEL_VERSION_MINOR 0
 #define tskKERNEL_VERSION_BUILD 0
 
+
+
 /**
  * task. h
  *
@@ -59,6 +61,7 @@ extern "C" {
  * \defgroup TaskHandle_t TaskHandle_t
  * \ingroup Tasks
  */
+
 typedef void * TaskHandle_t;
 
 /*
@@ -221,6 +224,8 @@ is used in assert() statements. */
 #define taskSCHEDULER_RUNNING		( ( BaseType_t ) 2 )
 
 
+
+
 /*-----------------------------------------------------------
  * TASK CREATION API
  *----------------------------------------------------------*/
@@ -324,7 +329,11 @@ is used in assert() statements. */
 							const configSTACK_DEPTH_TYPE usStackDepth,
 							void * const pvParameters,
 							UBaseType_t uxPriority,
-							TaskHandle_t * const pxCreatedTask ) PRIVILEGED_FUNCTION;
+							TaskHandle_t * const pxCreatedTask 
+#if (USE_ACO==1)
+                            ,acoTaskDuration duration
+#endif
+    ) PRIVILEGED_FUNCTION;
 #endif
 
 /**
@@ -441,7 +450,11 @@ is used in assert() statements. */
 									void * const pvParameters,
 									UBaseType_t uxPriority,
 									StackType_t * const puxStackBuffer,
-									StaticTask_t * const pxTaskBuffer ) PRIVILEGED_FUNCTION;
+									StaticTask_t * const pxTaskBuffer
+#if (USE_ACO==1)
+                                    , acoTaskDuration duration
+#endif
+                                ) PRIVILEGED_FUNCTION;
 #endif /* configSUPPORT_STATIC_ALLOCATION */
 
 /**
@@ -2329,6 +2342,9 @@ void *pvTaskIncrementMutexHeldCount( void ) PRIVILEGED_FUNCTION;
  */
 void vTaskInternalSetTimeOutState( TimeOut_t * const pxTimeOut ) PRIVILEGED_FUNCTION;
 
+#if USE_ACO == 1
+extern BaseType_t acoReadyListChanged;
+#endif
 
 #ifdef __cplusplus
 }

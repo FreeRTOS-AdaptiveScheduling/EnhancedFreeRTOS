@@ -37,6 +37,7 @@
 
 /* Demo app includes. */
 #include "StreamBufferDemo.h"
+#if ( USE_ACO != 1)
 
 /* The number of bytes of storage in the stream buffers used in this test. */
 #define sbSTREAM_BUFFER_LENGTH_BYTES	( ( size_t ) 30 )
@@ -1001,3 +1002,4 @@ BaseType_t xReturn = pdPASS, x;
 }
 /*-----------------------------------------------------------*/
 
+#endif //USE_ACO

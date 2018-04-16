@@ -38,6 +38,7 @@
 
 /* Demo program include files. */
 #include "QueueOverwrite.h"
+#if ( USE_ACO != 1)
 
 /* A block time of 0 just means "don't block". */
 #define qoDONT_BLOCK		0
@@ -229,3 +230,4 @@ uint32_t ulRx;
 	}
 }
 
+#endif //USE_ACO

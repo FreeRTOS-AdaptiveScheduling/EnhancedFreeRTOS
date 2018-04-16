@@ -342,7 +342,14 @@ uint32_t ulSwitchRequired;
 
 	/* Process the tick itself. */
 	configASSERT( xPortRunning );
+//#if USE_ACO == 1
+//   ulSwitchRequired = acoReadyListChanged;
+//   acoReadyListChanged = pdFALSE;
+//   if ( pxCurrentTCB == xTaskGetIdleTaskHandle() )
+       ulSwitchRequired = pdTRUE;
+//#else
 	ulSwitchRequired = ( uint32_t ) xTaskIncrementTick();
+//#endif
 
 	return ulSwitchRequired;
 }

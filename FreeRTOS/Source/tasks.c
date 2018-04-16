@@ -41,6 +41,9 @@ task.h is included from an application file. */
 #include "timers.h"
 #include "stack_macros.h"
 
+#if USE_ACO == 1
+BaseType_t acoReadyListChanged = pdFALSE;
+#endif
 /* Lint e961 and e750 are suppressed as a MISRA exception justified because the
 MPU ports require MPU_WRAPPERS_INCLUDED_FROM_API_FILE to be defined for the
 header files above, but not in this file, in order to generate the correct
@@ -355,6 +358,7 @@ typedef struct tskTaskControlBlock
         double pheramone;
         TickType_t arival_time;
         double probability;
+        acoTaskDuration duration;
     #endif //ACO_ADAPTIVE
 
 } tskTCB;
@@ -576,7 +580,11 @@ static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,
 									UBaseType_t uxPriority,
 									TaskHandle_t * const pxCreatedTask,
 									TCB_t *pxNewTCB,
-									const MemoryRegion_t * const xRegions ) PRIVILEGED_FUNCTION;
+									const MemoryRegion_t * const xRegions
+#if (USE_ACO==1)
+                                    , acoTaskDuration duration
+#endif
+                                ) PRIVILEGED_FUNCTION;
 
 /*
  * Called after a new task has been created and initialised to place the task
@@ -598,16 +606,18 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 #if ( USE_ACO == 1 || USE_HYBID_SCHEDULER == 1 )
     TickType_t acoGetDeadline( tskTCB* task );
     tskTCB* acoStart();
+
 #if (ACO_DEBUG >= 1)
-#define acoDRAW_LINE() printf("================\n");
+#define acoDRAW_LINE() fprintf(stderr,"================\n");
 #define acoPRINT_TASK_DETAILS(task)                                         \
         {                                                                   \
             acoDRAW_LINE();                                                 \
-            printf("Task Name: %s\n", task->pcTaskName);                    \
-            printf("Task Priority: %d\n", task->uxPriority);                \
-            printf("Task Probability: %lf\n", task->probability);           \
-            printf("Task Pheromone: %lf\n", task->pheramone);               \
-            printf("Task deadline: %ld\n", acoGetDeadline(task));           \
+            fprintf(stderr,"Task Name: %s\n", task->pcTaskName);                    \
+            fprintf(stderr,"Task Priority: %d\n", task->uxPriority);                \
+            fprintf(stderr,"Task Probability: %lf\n", task->probability);           \
+            fprintf(stderr,"Task Pheromone: %lf\n", task->pheramone);               \
+            fprintf(stderr,"Task deadline: %ld\n", acoGetDeadline(task));           \
+            fprintf(stderr, "Number of Tasks %ld\n", uxCurrentNumberOfTasks);         \
             acoDRAW_LINE();                                                 \
         }
     #endif
@@ -624,7 +634,11 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 									void * const pvParameters,
 									UBaseType_t uxPriority,
 									StackType_t * const puxStackBuffer,
-									StaticTask_t * const pxTaskBuffer )
+									StaticTask_t * const pxTaskBuffer
+#if (USE_ACO==1)
+                                    , acoTaskDuration duration
+#endif                                  
+                                   )
 	{
 	TCB_t *pxNewTCB;
 	TaskHandle_t xReturn;
@@ -658,7 +672,11 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 			}
 			#endif /* configSUPPORT_DYNAMIC_ALLOCATION */
 
-			prvInitialiseNewTask( pxTaskCode, pcName, ulStackDepth, pvParameters, uxPriority, &xReturn, pxNewTCB, NULL );
+			prvInitialiseNewTask( pxTaskCode, pcName, ulStackDepth, pvParameters, uxPriority, &xReturn, pxNewTCB, NULL 
+#if USE_ACO == 1
+                                , duration 
+#endif 
+                                );
 			prvAddNewTaskToReadyList( pxNewTCB );
 		}
 		else
@@ -774,7 +792,11 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 							const configSTACK_DEPTH_TYPE usStackDepth,
 							void * const pvParameters,
 							UBaseType_t uxPriority,
-							TaskHandle_t * const pxCreatedTask )
+							TaskHandle_t * const pxCreatedTask
+#if (USE_ACO==1)
+                            , acoTaskDuration duration
+#endif
+                        )
 	{
 	TCB_t *pxNewTCB;
 	BaseType_t xReturn;
@@ -845,7 +867,11 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 			}
 			#endif /* configSUPPORT_STATIC_ALLOCATION */
 
-			prvInitialiseNewTask( pxTaskCode, pcName, ( uint32_t ) usStackDepth, pvParameters, uxPriority, pxCreatedTask, pxNewTCB, NULL );
+			prvInitialiseNewTask( pxTaskCode, pcName, ( uint32_t ) usStackDepth, pvParameters, uxPriority, pxCreatedTask, pxNewTCB, NULL
+#if USE_ACO == 1
+                , duration 
+#endif 
+                                );
 			prvAddNewTaskToReadyList( pxNewTCB );
 			xReturn = pdPASS;
 		}
@@ -867,7 +893,11 @@ static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,
 									UBaseType_t uxPriority,
 									TaskHandle_t * const pxCreatedTask,
 									TCB_t *pxNewTCB,
-									const MemoryRegion_t * const xRegions )
+									const MemoryRegion_t * const xRegions
+#if (USE_ACO==1)
+                                    , acoTaskDuration duration
+#endif
+                                                                )
 {
 StackType_t *pxTopOfStack;
 UBaseType_t x;
@@ -1058,6 +1088,7 @@ UBaseType_t x;
         pxNewTCB->arival_time = xTaskGetTickCount();
         pxNewTCB->pheramone = ACO_PHEROMONE_INIT_VALUE;
         pxNewTCB->probability = 0;
+        pxNewTCB->duration = duration;
     }
     #endif
 
@@ -1141,6 +1172,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
     #if ( USE_ACO == 1 || USE_HYBID_SCHEDULER == 1 )
     {
         pxNewTCB->arival_time = xTaskGetTickCount();
+        acoReadyListChanged = pdTRUE;
     }
     #endif
 	
@@ -1234,6 +1266,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 			}
 
 			traceTASK_DELETE( pxTCB );
+            //acoReadyListChanged = pdTRUE;
 		}
 		taskEXIT_CRITICAL();
 
@@ -1975,7 +2008,11 @@ BaseType_t xReturn;
 												( void * ) NULL, /*lint !e961.  The cast is not redundant for all compilers. */
 												( tskIDLE_PRIORITY | portPRIVILEGE_BIT ),
 												pxIdleTaskStackBuffer,
-												pxIdleTaskTCBBuffer ); /*lint !e961 MISRA exception, justified as it is not a redundant explicit cast to all supported compilers. */
+												pxIdleTaskTCBBuffer 
+#if (USE_ACO==1)
+                                                , acoLONG_TASK  // Initialized such that, it will always have least priority.
+#endif
+        ); /*lint !e961 MISRA exception, justified as it is not a redundant explicit cast to all supported compilers. */
 
 		if( xIdleTaskHandle != NULL )
 		{
@@ -3309,7 +3346,10 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 
 	for( ;; )
 	{
-		/* See if any tasks have deleted themselves - if so then the idle task
+#if USE_ACO == 1
+        ((tskTCB*) xIdleTaskHandle)->arival_time = xTaskGetTickCount();
+#endif
+        /* See if any tasks have deleted themselves - if so then the idle task
 		is responsible for freeing the deleted task's TCB and stack. */
 		prvCheckTasksWaitingTermination();
 
@@ -3336,7 +3376,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 			then a task other than the idle task is ready to execute. */
 			if( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[ tskIDLE_PRIORITY ] ) ) > ( UBaseType_t ) 1 )
 			{
-				taskYIELD();
+                taskYIELD();
 			}
 			else
 			{
@@ -5115,11 +5155,6 @@ when performing module tests). */
 
 #if ( USE_ACO == 1 || USE_HYBID_SCHEDULER == 1 )
 
-/*
-    TODO:
-    -> Set default pheramone value (Change Task create)
-    -> Update pheramone 
-*/
 
 #include <math.h>
 
@@ -5137,8 +5172,12 @@ when performing module tests). */
         double priority_factor = acoMinMaxNormalization( task->uxPriority, 0, configMAX_PRIORITIES );
         double wait_time_factor = acoMinMaxNormalization( GET_WAIT_TIME( task ), minWaitTime, maxWaitTime );
         double rank_factor = acoMinMaxNormalization( rank, 0, acoNumberActiveTask );
-        return (PERFORMANCE_COEFFECIENT_PRIORITY * priority_factor 
-            + PERFORMANCE_COEFFECIENT_WAIT_TIME * wait_time_factor)/ (PERFORMANCE_COEFFECIENT_RANK * rank_factor);
+        double per_value = ((PERFORMANCE_COEFFECIENT_PRIORITY * priority_factor 
+            + PERFORMANCE_COEFFECIENT_WAIT_TIME * wait_time_factor))
+            /
+            ((PERFORMANCE_COEFFECIENT_RANK * rank_factor)
+            + (PERFORMANCE_COEFFICIENT_DURATION * task->duration));
+        return per_value;
     }
 
     TickType_t acoGetDeadline( tskTCB* task ) {
@@ -5148,18 +5187,25 @@ when performing module tests). */
 
     double getHeuristicValue( TickType_t current_time, tskTCB* task ) {
         TickType_t deadline = acoGetDeadline( task );
+        if ( current_time >= deadline )
+            return 1;
         double hv = acoHVALUE / (double)( deadline - current_time);
+        
         return hv;
     }
 
     double acoGetProbabilityFactor( tskTCB* task ) {
-        double probability = pow( task->pheramone, acoALPHA ) * pow( getHeuristicValue( xTaskGetTickCount(), task ), acoBETA );
+        double hv = getHeuristicValue( xTaskGetTickCount(), task );
+        double probability = pow( task->pheramone, acoALPHA ) * pow( hv, acoBETA );
+        if ( isinf( probability ) == 1 ) {
+            printf("Test");
+        }
         return probability;
     }
     
     tskTCB* acoStart() {
         tskTCB **tasks = pvPortMalloc(sizeof(tskTCB*)*uxCurrentNumberOfTasks);
-        double sum_partial_probability = 0;
+        double sum_partial_probability = 1.0;
         acoNumberActiveTask = 0;
 
         /* Loop through entire ready list and create a linear array
@@ -5169,9 +5215,16 @@ when performing module tests). */
             ListItem_t *list_end = listGET_END_MARKER( &pxReadyTasksLists[i] );
             ListItem_t *list_item = listGET_HEAD_ENTRY( &pxReadyTasksLists[i] );
             while(list_item != list_end){  
-                tasks[k] = listGET_LIST_ITEM_OWNER(list_item);
+                tskTCB *temp = listGET_LIST_ITEM_OWNER( list_item );
+                /*if ( temp == xIdleTaskHandle ) {
+                    printf( "Skipping Idle Task" );
+                    break;
+                }*/
+                tasks[k] = temp;
                 tasks[k]->probability = acoGetProbabilityFactor( tasks[k] );
                 sum_partial_probability += tasks[k]->probability;
+                if ( isinf( sum_partial_probability ) == 1 )
+                    printf( "test" );
                 list_item = listGET_NEXT( list_item );
                 ++k;
                 acoNumberActiveTask++;
@@ -5189,15 +5242,17 @@ when performing module tests). */
         */
         for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
             tasks[i]->probability /= sum_partial_probability;
+            if ( isnan( tasks[i]->probability ) )
+                printf("Test");
             if ( maxWaitTime < GET_WAIT_TIME( tasks[i] ) )
                 maxWaitTime = GET_WAIT_TIME( tasks[i] );
             if ( minWaitTime > GET_WAIT_TIME( tasks[i] ) )
                 minWaitTime = GET_WAIT_TIME( tasks[i] );
-            #if ACO_DEBUG >= 4
+            /*#if ACO_DEBUG >= 4
             {
                 acoPRINT_TASK_DETAILS( tasks[i] );
             }
-            #endif
+            #endif*/
         }
         /* Sort the tasks in decreasing order of probabilty
            -> TODO: Replace the sort with something more optimal */
@@ -5271,7 +5326,7 @@ when performing module tests). */
             }
         }
 
-        sum_partial_probability = 0;
+        sum_partial_probability = 1.0;
         /* Calculate probability again and select the task with maximum probability */
         for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
             tasks[i]->probability = acoGetProbabilityFactor( tasks[i] );
@@ -5280,6 +5335,8 @@ when performing module tests). */
         tskTCB *maximum_probabilty_task = tasks[0];
         for ( UBaseType_t i = 0; i < acoNumberActiveTask; ++i ) {
             tasks[i]->probability /= sum_partial_probability;
+            if ( isnan( tasks[i]->probability ) )
+                printf("Test");
             if ( tasks[i]->probability > maximum_probabilty_task->probability )
                 maximum_probabilty_task = tasks[i];
             #if ACO_DEBUG >= 4

@@ -37,6 +37,7 @@
 
 /* Demo app includes. */
 #include "MessageBufferDemo.h"
+#if ( USE_ACO != 1)
 
 /* The number of bytes of storage in the message buffers used in this test. */
 #define mbMESSAGE_BUFFER_LENGTH_BYTES	( ( size_t ) 50 )
@@ -802,3 +803,4 @@ BaseType_t xReturn = pdPASS, x;
 /*-----------------------------------------------------------*/
 
 
+#endif //USE_ACO

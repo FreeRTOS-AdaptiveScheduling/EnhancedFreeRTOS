@@ -46,6 +46,7 @@
 
 /* Demo program include files. */
 #include "StaticAllocation.h"
+#if ( USE_ACO != 1)
 
 /* Exclude the entire file if configSUPPORT_STATIC_ALLOCATION is 0. */
 #if( configSUPPORT_STATIC_ALLOCATION == 1 )
@@ -1105,3 +1106,4 @@ BaseType_t xReturn;
 
 /* Exclude the entire file if configSUPPORT_STATIC_ALLOCATION is 0. */
 #endif /* configSUPPORT_STATIC_ALLOCATION == 1 */
+#endif //USE_ACO

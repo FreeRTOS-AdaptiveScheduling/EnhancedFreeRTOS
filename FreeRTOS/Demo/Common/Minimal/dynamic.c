@@ -93,6 +93,8 @@
 /* Demo app include files. */
 #include "dynamic.h"
 
+#if ( USE_ACO != 1)
+
 /* Function that implements the "limited count" task as described above. */
 static portTASK_FUNCTION_PROTO( vLimitedIncrementTask, pvParameters );
 
@@ -475,3 +477,5 @@ BaseType_t xReturn = pdTRUE;
 
 	return xReturn;
 }
+
+#endif // USE_ACO

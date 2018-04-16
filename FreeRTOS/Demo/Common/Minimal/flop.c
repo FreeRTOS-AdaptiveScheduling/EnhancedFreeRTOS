@@ -50,6 +50,8 @@
 /* Demo program include files. */
 #include "flop.h"
 
+#if ( USE_ACO != 1 )
+
 #ifndef mathSTACK_SIZE
 	#define mathSTACK_SIZE		configMINIMAL_STACK_SIZE
 #endif
@@ -346,5 +348,5 @@ BaseType_t xReturn = pdPASS, xTask;
 	return xReturn;
 }
 
-
+#endif // USE_ACO != 1
 

@@ -246,7 +246,11 @@ BaseType_t xReturn = pdFAIL;
 													NULL,
 													( ( UBaseType_t ) configTIMER_TASK_PRIORITY ) | portPRIVILEGE_BIT,
 													pxTimerTaskStackBuffer,
-													pxTimerTaskTCBBuffer );
+													pxTimerTaskTCBBuffer
+#if (USE_ACO==1)
+                                                    , acoSHORT_TASK
+#endif
+                                                );
 
 			if( xTimerTaskHandle != NULL )
 			{

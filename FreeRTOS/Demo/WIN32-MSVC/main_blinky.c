@@ -134,6 +134,7 @@ static TimerHandle_t xTimer = NULL;
 /*-----------------------------------------------------------*/
 
 /*** SEE THE COMMENTS AT THE TOP OF THIS FILE ***/
+#if ( USE_ACO != 1 )
 void main_blinky( void )
 {
 const TickType_t xTimerPeriod = mainTIMER_SEND_FREQUENCY_MS;
@@ -172,6 +173,7 @@ const TickType_t xTimerPeriod = mainTIMER_SEND_FREQUENCY_MS;
 	FreeRTOS web site for more details. */
 	for( ;; );
 }
+#endif
 /*-----------------------------------------------------------*/
 
 static void prvQueueSendTask( void *pvParameters )

@@ -55,6 +55,8 @@
 /* Demo program include files. */
 #include "death.h"
 
+#if ( USE_ACO != 1)
+
 #define deathSTACK_SIZE		( configMINIMAL_STACK_SIZE + 60 )
 
 /* The task originally created which is responsible for periodically dynamically
@@ -202,3 +204,4 @@ static UBaseType_t uxTasksRunningNow;
 }
 
 
+#endif //USE_ACO

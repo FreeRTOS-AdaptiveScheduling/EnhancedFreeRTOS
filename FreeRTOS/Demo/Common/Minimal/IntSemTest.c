@@ -41,6 +41,7 @@
 
 /* Demo program include files. */
 #include "IntSemTest.h"
+#if ( USE_ACO != 1)
 
 /*-----------------------------------------------------------*/
 
@@ -524,3 +525,4 @@ static uint32_t ulLastMasterLoopCounter = 0, ulLastCountingSemaphoreLoops = 0;
 }
 
 
+#endif //USE_ACO

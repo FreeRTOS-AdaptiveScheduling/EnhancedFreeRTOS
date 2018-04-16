@@ -51,6 +51,7 @@
 
 /* Demo includes. */
 #include "QueueSetPolling.h"
+#if ( USE_ACO != 1)
 
 /* The length of each created queue. */
 #define setpollQUEUE_LENGTH	10
@@ -178,3 +179,4 @@ static uint32_t ulLastCycleCounter = 0;
 /*-----------------------------------------------------------*/
 
 
+#endif //USE_ACO

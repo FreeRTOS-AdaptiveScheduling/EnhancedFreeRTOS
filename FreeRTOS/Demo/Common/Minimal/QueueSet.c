@@ -51,6 +51,7 @@
 
 /* Demo includes. */
 #include "QueueSet.h"
+#if ( USE_ACO != 1)
 
 /* The number of queues that are created and added to the queue set. */
 #define queuesetNUM_QUEUES_IN_SET 3
@@ -696,3 +697,4 @@ static void prvSRand( size_t uxSeed )
 	uxNextRand = uxSeed;
 }
 
+#endif //USE_ACO

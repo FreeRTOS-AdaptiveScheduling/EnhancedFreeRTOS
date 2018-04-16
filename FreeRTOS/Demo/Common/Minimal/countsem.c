@@ -38,6 +38,7 @@
 
 /* Demo program include files. */
 #include "countsem.h"
+#if ( USE_ACO != 1)
 
 /* The maximum count value that the semaphore used for the demo can hold. */
 #define countMAX_COUNT_VALUE	( 200 )
@@ -287,3 +288,4 @@ BaseType_t xReturn = pdPASS;
 }
 
 
+#endif //USE_ACO

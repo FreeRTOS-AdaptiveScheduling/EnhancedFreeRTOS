@@ -62,6 +62,15 @@ extern "C" {
 /* Definitions specific to the port being used. */
 #include "portable.h"
 
+#if ( USE_ACO == 1)
+
+#define acoSHORT_TASK 0.1
+#define acoMEDIUM_TASK 0.5
+#define acoLONG_TASK 1
+
+typedef uint_fast8_t acoTaskDuration;
+
+#endif
 /* Must be defaulted before configUSE_NEWLIB_REENTRANT is used below. */
 #ifndef configUSE_NEWLIB_REENTRANT
 	#define configUSE_NEWLIB_REENTRANT 0
@@ -1032,6 +1041,8 @@ typedef struct xSTATIC_TCB
         double pheramone;
         TickType_t arival_time;
         double probability;
+        acoTaskDuration duration;
+
     #endif //ACO_ADAPTIVE
 
 } StaticTask_t;

@@ -68,6 +68,7 @@
 
 /* Demo app includes. */
 #include "MessageBufferAMP.h"
+#if ( USE_ACO != 1)
 
 /* Enough for 3 4 byte pointers, including the additional 4 bytes per message
 overhead of message buffers. */
@@ -328,3 +329,4 @@ BaseType_t x;
 	return xDemoStatus;
 }
 
+#endif //USE_ACO

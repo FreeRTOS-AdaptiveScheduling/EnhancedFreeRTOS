@@ -47,6 +47,7 @@
 
 /* Demo program include files. */
 #include "GenQTest.h"
+#if ( USE_ACO != 1)
 
 #define genqQUEUE_LENGTH		( 5 )
 #define intsemNO_BLOCK			( 0 )
@@ -1003,3 +1004,4 @@ static uint32_t ulLastLoopCounter = 0, ulLastLoopCounter2 = 0;
 }
 
 
+#endif //USE_ACO

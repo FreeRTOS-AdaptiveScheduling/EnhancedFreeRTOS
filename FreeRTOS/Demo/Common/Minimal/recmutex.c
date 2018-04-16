@@ -70,6 +70,7 @@
 /* Demo app include files. */
 #include "recmutex.h"
 
+#if ( USE_ACO != 1 )
 /* Priorities assigned to the three tasks.  recmuCONTROLLING_TASK_PRIORITY can
 be overridden by a definition in FreeRTOSConfig.h. */
 #ifndef recmuCONTROLLING_TASK_PRIORITY
@@ -409,5 +410,5 @@ static UBaseType_t uxLastControllingCycles = 0, uxLastBlockingCycles = 0, uxLast
 }
 
 
-
+#endif // USE_ACO != 1
 

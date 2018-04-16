@@ -41,6 +41,7 @@
 
 /* Demo program include files. */
 #include "TaskNotify.h"
+#if ( USE_ACO != 1)
 
 #define notifyTASK_PRIORITY		( tskIDLE_PRIORITY )
 #define notifyUINT32_MAX	( ( uint32_t ) 0xffffffff )
@@ -682,3 +683,4 @@ const size_t uxMultiplier = ( size_t ) 0x015a4e35, uxIncrement = ( size_t ) 1;
 	return( ( uxNextRand >> 16 ) & ( ( size_t ) 0x7fff ) );
 }
 /*-----------------------------------------------------------*/
+#endif //USE_ACO

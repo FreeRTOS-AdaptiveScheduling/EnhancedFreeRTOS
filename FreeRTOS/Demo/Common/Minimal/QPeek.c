@@ -43,6 +43,7 @@
 
 /* Demo program include files. */
 #include "QPeek.h"
+#if ( USE_ACO != 1)
 
 #define qpeekQUEUE_LENGTH		( 5 )
 #define qpeekNO_BLOCK			( 0 )
@@ -438,3 +439,4 @@ static uint32_t ulLastLoopCounter = 0;
 	return ( BaseType_t ) !xErrorDetected;
 }
 
+#endif //USE_ACO

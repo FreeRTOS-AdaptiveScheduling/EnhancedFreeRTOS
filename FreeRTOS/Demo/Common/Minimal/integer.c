@@ -42,6 +42,8 @@
 /* Demo program include files. */
 #include "integer.h"
 
+#if ( USE_ACO != 1 )
+
 /* The constants used in the calculation. */
 #define intgCONST1				( ( long ) 123 )
 #define intgCONST2				( ( long ) 234567 )
@@ -162,3 +164,4 @@ short sTask;
 	return xReturn;
 }
 
+#endif // USE_ACO != 1

@@ -65,6 +65,7 @@ Changes from V2.0.0
 
 /* Demo program include files. */
 #include "PollQ.h"
+#if ( USE_ACO != 1)
 
 #define pollqSTACK_SIZE			configMINIMAL_STACK_SIZE
 #define pollqQUEUE_SIZE			( 10 )
@@ -222,3 +223,4 @@ BaseType_t xReturn;
 
 	return xReturn;
 }
+#endif //USE_ACO

@@ -59,6 +59,7 @@
 
 /* Demo program include files. */
 #include "BlockQ.h"
+#if ( USE_ACO != 1)
 
 #define blckqSTACK_SIZE		configMINIMAL_STACK_SIZE
 #define blckqNUM_TASK_SETS	( 3 )
@@ -289,3 +290,4 @@ BaseType_t xReturn = pdPASS, xTasks;
 	return xReturn;
 }
 
+#endif //USUE_ACO

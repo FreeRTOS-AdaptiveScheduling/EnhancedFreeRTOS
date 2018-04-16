@@ -38,18 +38,19 @@
 #define PRINT_LINE() printf("\n================\n");
 
 #define REPORTER_BLOCK_TIME     pdMS_TO_TICKS(500U)
-#define REPORTER_PRIORITY configMAX_PRIORITIES - 1
+#define REPORTER_PRIORITY configMAX_PRIORITIES - 2
 
 
-#define HIGH_PRIORITY       configMAX_PRIORITIES - 1
-#define MEDIUM_PRIORITY     HIGH_PRIORITY - 2
-#define LOW_PRIORITY        MEDIUM_PRIORITY - 2
+#define HIGH_PRIORITY       configMAX_PRIORITIES - 3
+#define MEDIUM_PRIORITY     HIGH_PRIORITY - 1
+#define LOW_PRIORITY        MEDIUM_PRIORITY - 1
 
-#define NUMBER_HIGH_TASK    3
-#define NUMBER_MEDIUM_TASK  5
-#define NUMBER_LOW_TASK     8
+#define NUMBER_TASKS    25
+
+#define NUMBER_HIGH_TASK    0.2 * NUMBER_TASKS
+#define NUMBER_MEDIUM_TASK  0.3 * NUMBER_TASKS
+#define NUMBER_LOW_TASK     NUMBER_TASKS - NUMBER_HIGH_TASK - NUMBER_MEDIUM_TASK
  
-#define NUMBER_TASKS    NUMBER_HIGH_TASK + NUMBER_MEDIUM_TASK + NUMBER_LOW_TASK
 
 
 typedef struct DemoTaskParameters {
@@ -63,12 +64,19 @@ typedef struct DemoTaskParameters {
 
     TaskHandle_t handle;
 
-    int number;
+    long number;
 } DemoTaskParameters;
 
 DemoTaskParameters *task_list_parameters[NUMBER_TASKS] = { 0 };
+#if USE_ACO == 1
+acoTaskDuration getTaskDuration( long n ) {
+    if ( n > 120000 ) return acoLONG_TASK;
+    if ( n > 75000 ) return acoMEDIUM_TASK;
+    return acoSHORT_TASK;
+}
+#endif
 
-DemoTaskParameters * initialize_parameter(int index, char * name, int priority, int number) {
+DemoTaskParameters * initialize_parameter(int index, char * name, int priority, long number) {
     DemoTaskParameters *params = (DemoTaskParameters *) pvPortMalloc(sizeof(DemoTaskParameters));
     params->is_finished = FALSE;
     params->index = index;
@@ -93,44 +101,63 @@ void main_experiment() {
                 configMINIMAL_STACK_SIZE,
                 NULL,
                 REPORTER_PRIORITY,
-                NULL );
+                NULL 
+#if USE_ACO == 1
+                , acoLONG_TASK
+#endif
+                );
     int j = 0;
     for ( int i = 0; i < NUMBER_HIGH_TASK; ++i ) {
         char *name = pvPortMalloc( sizeof( char ) * 10 );
         sprintf( name, "HD%d", i );
-        DemoTaskParameters *pv = initialize_parameter( i, name, HIGH_PRIORITY, rand()%100 );
+        long n = 50000 + rand() % 50000;
+        DemoTaskParameters *pv = initialize_parameter( i, name, HIGH_PRIORITY, n );
         task_list_parameters[j++] = pv;
         xTaskCreate( demo_task,
             name,
             configMINIMAL_STACK_SIZE,
             pv,
             HIGH_PRIORITY,
-            &pv->handle );
+            &pv->handle 
+#if USE_ACO == 1
+            , getTaskDuration(n)
+#endif
+        );
         
     }
     for ( int i = 0; i < NUMBER_MEDIUM_TASK; ++i ) {
         char *name = pvPortMalloc(sizeof(char)*10);        
         sprintf( name, "MD%d", i );
-        DemoTaskParameters *pv = initialize_parameter( i, name, MEDIUM_PRIORITY, rand()%100 );
+        long n = 50000 + rand() % 50000;
+        DemoTaskParameters *pv = initialize_parameter( i, name, MEDIUM_PRIORITY, n );
         task_list_parameters[j++] = pv;
         xTaskCreate( demo_task,
             name,
             configMINIMAL_STACK_SIZE,
             pv,
             MEDIUM_PRIORITY,
-            &pv->handle );
+            &pv->handle
+#if USE_ACO == 1
+            , getTaskDuration(n)
+#endif
+        );
     }
     for ( int i = 0; i < NUMBER_LOW_TASK; ++i ) {
         char *name = pvPortMalloc( sizeof( char ) * 10 );
         sprintf( name, "LD%d", i );
-        DemoTaskParameters *pv = initialize_parameter( i, name, LOW_PRIORITY, rand()%100 );
+        long n = 50000 + rand() % 50000;
+        DemoTaskParameters *pv = initialize_parameter( i, name, LOW_PRIORITY, n );
         task_list_parameters[j++] = pv;
         xTaskCreate( demo_task,
             name,
             configMINIMAL_STACK_SIZE,
             pv,
             LOW_PRIORITY,
-            &pv->handle );
+            &pv->handle 
+#if USE_ACO == 1
+            , getTaskDuration(n)
+#endif
+        );
     }
     vTaskStartScheduler();
 }
@@ -140,7 +167,7 @@ void reporting_task( void *pvParameters ) {
     xNextWakeTime = xTaskGetTickCount();
 
     for ( ; ; ) {
-        PRINT_LINE();
+        //PRINT_LINE();
         printf( "Starting Reporter Task at %ld.\n", xNextWakeTime );
         uint8_t tasks_pending = FALSE;
         for ( int i = 0; i < NUMBER_TASKS; ++i ) {
@@ -184,30 +211,34 @@ void reporting_task( void *pvParameters ) {
 
 
 void demo_task( void *params ) {
-    PRINT_LINE();
+    //PRINT_LINE();
     DemoTaskParameters *pv = (DemoTaskParameters*) params;
-    printf( "Starting Task %d:%s with priority:%d\n", pv->index, pv->name, pv->priority );
+    //printf( "Starting Task %d:%s with priority:%d\n", pv->index, pv->name, pv->priority );
 
     int n = pv->number;
 
     int flag = TRUE;
-    for ( int i = 2; i < n-1; ++i ) {
-        printf( "Task %d\t| Priority: %d\t| Processing...\n", pv->index, pv->priority );
-        if ( i % n == 0 ) {
-            flag = FALSE;
-            break;
+    for ( int j = 0; j < n; ++j ) {
+        flag = TRUE;
+        for ( int i = 2; i < n - 1; ++i ) {
+            //printf( "Task %d\t| Priority: %d\t| Processing...\n", pv->index, pv->priority );
+            if ( n % i == 0 ) {
+                flag = FALSE;
+                break;
+            }
         }
     }
 
-    if ( flag = TRUE ) {
+    /*if ( flag = TRUE ) {
         PRINT_LINE();
         printf( "Finished.\nTask %d:%s with priority:%d and Number=%d.\nResult: Prime\n", pv->index, pv->name, pv->priority,n);
     }
     else {
         PRINT_LINE();
         printf( "Finished.\nTask %d:%s with priority:%d and Number=%d.\nResult: Not Prime\n", pv->index, pv->name, pv->priority, n );
-    }
+    }*/
     pv->end_time = xTaskGetTickCount();
     pv->is_finished = TRUE;
     vTaskDelete( pv->handle );
+
 }

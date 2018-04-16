@@ -48,6 +48,7 @@
 
 /* Demo app includes. */
 #include "StreamBufferInterrupt.h"
+#if ( USE_ACO != 1)
 
 #define sbiSTREAM_BUFFER_LENGTH_BYTES		( ( size_t ) 100 )
 #define sbiSTREAM_BUFFER_TRIGGER_LEVEL_10	( ( BaseType_t ) 10 )
@@ -227,3 +228,4 @@ uint32_t ulLastCycleCount = 0;
 	return xDemoStatus;
 }
 
+#endif //USE_ACO
