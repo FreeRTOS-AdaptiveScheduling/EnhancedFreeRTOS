@@ -45,13 +45,16 @@
 #define MEDIUM_PRIORITY     HIGH_PRIORITY - 1
 #define LOW_PRIORITY        MEDIUM_PRIORITY - 1
 
-#define NUMBER_TASKS    25
+#define SEED            25114
+#define NUMBER_TASKS    18
 
 #define NUMBER_HIGH_TASK    0.2 * NUMBER_TASKS
 #define NUMBER_MEDIUM_TASK  0.3 * NUMBER_TASKS
 #define NUMBER_LOW_TASK     NUMBER_TASKS - NUMBER_HIGH_TASK - NUMBER_MEDIUM_TASK
  
+#define USE_STATIC_TASK  0
 
+#define STATIC_NUMBER 1
 
 typedef struct DemoTaskParameters {
     int index;
@@ -70,8 +73,8 @@ typedef struct DemoTaskParameters {
 DemoTaskParameters *task_list_parameters[NUMBER_TASKS] = { 0 };
 #if USE_ACO == 1
 acoTaskDuration getTaskDuration( long n ) {
-    if ( n > 120000 ) return acoLONG_TASK;
-    if ( n > 75000 ) return acoMEDIUM_TASK;
+    if ( n > 75000 ) return acoLONG_TASK;
+    if ( n > 60000 ) return acoMEDIUM_TASK;
     return acoSHORT_TASK;
 }
 #endif
@@ -95,7 +98,7 @@ void reporting_task( void *pvParameters );
 void demo_task( void *pvParameters );
 
 void main_experiment() {
-
+    srand( SEED );
     xTaskCreate( reporting_task,
                 "RT",
                 configMINIMAL_STACK_SIZE,
@@ -110,8 +113,13 @@ void main_experiment() {
     for ( int i = 0; i < NUMBER_HIGH_TASK; ++i ) {
         char *name = pvPortMalloc( sizeof( char ) * 10 );
         sprintf( name, "HD%d", i );
+#if USE_STATIC_TASK == 1
+        long n = STATIC_NUMBER;
+#else
         long n = 50000 + rand() % 50000;
+#endif
         DemoTaskParameters *pv = initialize_parameter( i, name, HIGH_PRIORITY, n );
+        printf( "%ld\n", n );
         task_list_parameters[j++] = pv;
         xTaskCreate( demo_task,
             name,
@@ -128,8 +136,13 @@ void main_experiment() {
     for ( int i = 0; i < NUMBER_MEDIUM_TASK; ++i ) {
         char *name = pvPortMalloc(sizeof(char)*10);        
         sprintf( name, "MD%d", i );
+#if USE_STATIC_TASK == 1
+        long n = STATIC_NUMBER;
+#else
         long n = 50000 + rand() % 50000;
+#endif        
         DemoTaskParameters *pv = initialize_parameter( i, name, MEDIUM_PRIORITY, n );
+        printf( "%ld\n", n );
         task_list_parameters[j++] = pv;
         xTaskCreate( demo_task,
             name,
@@ -145,8 +158,13 @@ void main_experiment() {
     for ( int i = 0; i < NUMBER_LOW_TASK; ++i ) {
         char *name = pvPortMalloc( sizeof( char ) * 10 );
         sprintf( name, "LD%d", i );
+#if USE_STATIC_TASK == 1
+        long n = STATIC_NUMBER;
+#else
         long n = 50000 + rand() % 50000;
+#endif        
         DemoTaskParameters *pv = initialize_parameter( i, name, LOW_PRIORITY, n );
+        printf( "%ld\n", n );
         task_list_parameters[j++] = pv;
         xTaskCreate( demo_task,
             name,
@@ -189,14 +207,15 @@ void reporting_task( void *pvParameters ) {
             int success = 0;
             for ( int i = 0; i < NUMBER_TASKS; ++i ) {
                 DemoTaskParameters *pv = task_list_parameters[i];
+                printf( "%ld\n", pv->end_time );
                 if ( pv->end_time < pv->deadline ) {
                     success++;
-                    printf( "Tasks %d: %s executed successfully.\nDeadline:%ld\tFinish Time:%ld\n", 
-                        i, pv->name, pv->deadline, pv->end_time );
+                    //printf( "Tasks %d: %s executed successfully.\nDeadline:%ld\tFinish Time:%ld\n", 
+                    //    i, pv->name, pv->deadline, pv->end_time );
                 }
                 else {
-                    fprintf( stderr, "Tasks %d: %s Failed to meet deadline.\nDeadline:%ld\tFinish Time:%ld\n",
-                        i, pv->name, pv->deadline, pv->end_time );
+                    //fprintf( stderr, "Tasks %d: %s Failed to meet deadline.\nDeadline:%ld\tFinish Time:%ld\n",
+                    //    i, pv->name, pv->deadline, pv->end_time );
                 }
             }
             PRINT_LINE();

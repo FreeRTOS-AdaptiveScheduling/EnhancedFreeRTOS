@@ -5204,6 +5204,7 @@ when performing module tests). */
     }
     
     tskTCB* acoStart() {
+        ((tskTCB*) xIdleTaskHandle)->pheramone = 1.0;
         tskTCB **tasks = pvPortMalloc(sizeof(tskTCB*)*uxCurrentNumberOfTasks);
         double sum_partial_probability = 1.0;
         acoNumberActiveTask = 0;
