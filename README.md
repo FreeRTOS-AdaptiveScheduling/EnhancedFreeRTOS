@@ -1,5 +1,6 @@
 # FreeRTOS-Source
 > This is a Visual Studio Project
+
 >The Windows Simulator and the Kernel of FreeRTOS
 
 This is a modified version of FreeRTOS kernel with an enhanced scheduler. Developing an adaptive scheduler for the FreeRTOS
