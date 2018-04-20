@@ -1,4 +1,4 @@
-# FreeRTOS-Source
+# EnhancedFreeRTOS
 > This is a Visual Studio Project
 
 >The Windows Simulator and the Kernel of FreeRTOS
