@@ -83,7 +83,7 @@ Constants are defined in file `FreeRTOSconfig.h`.
 #define DEADLINE_CONSTANT configMAX_PRIORITIES * PRIORITY_DEADLINE_MULTIPLIER + MINIMUM_DEADLINE
 ```
 
-Vary the performance to get results.
+Vary the values to get different results.
 
 
 
