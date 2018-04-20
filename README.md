@@ -3,7 +3,7 @@
 
 >The Windows Simulator and the Kernel of FreeRTOS
 
-This is a modified version of FreeRTOS kernel with an enhanced scheduler. Developing an adaptive scheduler for the FreeRTOS
+This is a modified version of FreeRTOS kernel with an enhanced scheduler. An adaptive scheduler for the FreeRTOS
 based on **Ant Colony Optimisation**.
 
 The project aims to introduce **Ant Colony Optimisation** into the scheduler of FreeRTOS
